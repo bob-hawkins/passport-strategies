@@ -1,0 +1,25 @@
+[package]
+name = "passport-strategies"
+version = "0.1.0"
+authors = ["Bob Hawkins <Kinghawkins61@gmail.com>"]
+license = "MIT"
+description = "A thin wrapper on top of oauth2-rs that simplifies auth flow."
+repository = "https://github.com/KingHawkins/passport-strategies"
+edition = "2021"
+keywords = ["oauth2", "passport", "strategies"]
+readme = "README.md"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+
+[dependencies]
+anyhow = "1.0.79"
+colored = "2.1.0"
+oauth2 = "4.4.2"
+reqwest = { version = "0.11.23", features = ["json"] }
+serde = { version = "1.0.194", features = ["derive"] }
+serde_json = "1.0.110"
+
+[dev-dependecies]
+tokio = { version = "1.35.1", features = ["full"] }
+pretty_env_logger = "0.5.0"
