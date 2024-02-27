@@ -1,18 +1,18 @@
 # Passport strategies
 
-Passport strategies for authenticating with Facebook, Google, Microsoft and Github using the OAuth 2.0 API. This library is a thin wrapper of [`oauth2`](https://crates.io/crates/oauth2) that simplifies the auth flow.
-This module lets you authenticate with the above mentioned providers in your applications. By plugging into passport-strategies, (Microsoft, Google, Github and Facebook) authentication can be easily and unobtrusively integrated into any rust application or rust framework.
+Passport strategies for authenticating with Discord, Facebook, Google, Microsoft and Github using the OAuth 2.0 API. This library is a thin wrapper of [`oauth2`](https://crates.io/crates/oauth2) that simplifies the auth flow.
+This module lets you authenticate with the above mentioned providers in your applications. By plugging into passport-strategies, (Discord, Microsoft, Google, Github and Facebook) authentication can be easily and unobtrusively integrated into any rust application or rust framework.
 
 # Adding `passport-strategies`
 
 ```toml
-passport-strategies = { version = "*" }
+passport-strategies = { version = "0.1.4" }
 ```
 
 # Usage
 
 Create an Application
-Before using passport-strategies, you must register an application with the respective provider. If you have not already done so, a new application can be created at [`Facebook`](https://developers.facebook.com), [`Google`](https://console.cloud.google.com), [`Github`](https://github.com/settings/developers), [`Microsoft`](). Your application will be issued an app ID and app secret, which need to be provided to the strategy. You will also need to configure a redirect URI which matches the route in your application.
+Before using passport-strategies, you must register an application with the respective provider. If you have not already done so, a new application can be created at [`Facebook`](https://developers.facebook.com), [`Google`](https://console.cloud.google.com), [`Github`](https://github.com/settings/developers), [`Microsoft`](), [`Discord`]("https://discord.com/developers/"). Your application will be issued an app ID and app secret, which need to be provided to the strategy. You will also need to configure a redirect URI which matches the route in your application.
 
 # Configure Strategy
 
@@ -32,6 +32,16 @@ The `passport-strategy` authenticates users using the desired provider account a
                "<client_secret>",
                vec!["<scope>"],
                "<redirect_url>",
+               "<failure_redirect>"
            ),
        );
 ```
+
+# What's new
+
+1. Improved error handling when user cancels authorization or incase of csrf and code challenge mismatch.
+2. Discord Strategy integration.
+
+# Collaboration
+
+I will be more than ready to accept pull requests. Also, if this project helped you, leave a star on github.

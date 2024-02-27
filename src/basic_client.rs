@@ -6,6 +6,7 @@ use oauth2::{
     AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge,
     PkceCodeVerifier, RedirectUrl, TokenResponse,
 };
+use reqwest::Url;
 use serde::de::Visitor;
 
 use std::collections::HashMap;
@@ -15,8 +16,13 @@ use crate::strategies::Strategy;
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct StateCode {
-    state: CsrfToken,
-    code: String,
+    state: Option<CsrfToken>,
+    code: Option<String>,
+}
+
+pub enum PassportResponse {
+    FailureRedirect(Url),
+    Profile(serde_json::Value),
 }
 
 pub struct Verifier(PkceCodeVerifier);
@@ -125,23 +131,31 @@ impl PassPortBasicClient {
         auth_url.to_string()
     }
 
-    pub async fn get_profile(
-        &mut self,
-        auth_state: StateCode,
-    ) -> anyhow::Result<serde_json::Value> {
-        match self.sessions.get(auth_state.state.secret()) {
+    pub async fn get_profile(&mut self, statecode: StateCode) -> anyhow::Result<PassportResponse> {
+        // Adding check for StateCode for handling errors incase the authorization is cancelled by the user or csrf and code challenge mismatch.
+        // This mean that unlike the previous versions, passport response enum is returned. It can either be a failure_redirect or json profile.
+        if statecode.state.is_none() || statecode.code.is_none() {
+            return Ok(PassportResponse::FailureRedirect(
+                self.types.get(&self.current).unwrap().failure_redirect(),
+            ));
+        }
+        match self
+            .sessions
+            .get(statecode.state.as_ref().unwrap().secret())
+        {
             Some(verifier) => {
                 let json_pkce: Verifier = serde_json::from_str(&verifier).unwrap();
                 let clients = self.clients.get(&self.current).unwrap();
                 match clients
                     .clone()
-                    .exchange_code(AuthorizationCode::new(auth_state.code.clone()))
+                    .exchange_code(AuthorizationCode::new(statecode.code.unwrap().clone()))
                     .set_pkce_verifier(json_pkce.0)
                     .request_async(async_http_client)
                     .await
                 {
                     Ok(access_token) => {
-                        self.sessions.remove(auth_state.state.secret());
+                        self.sessions.remove(statecode.state.unwrap().secret());
+                        dbg!(&access_token);
                         let response = reqwest::Client::new()
                             .get(self.types.get(&self.current).unwrap().request_uri())
                             .header(
@@ -166,16 +180,22 @@ impl PassPortBasicClient {
                                         }
                                         None => serde_json::json!(None::<String>),
                                     };
-                                    profile
+                                    PassportResponse::Profile(profile)
                                 })
                         } else {
                             anyhow::bail!(response.text().await.unwrap())
                         }
                     }
-                    Err(err) => anyhow::bail!(err.to_string()),
+                    Err(err) => {
+                        self.sessions.remove(statecode.state.unwrap().secret());
+                        anyhow::bail!(err.to_string())
+                    }
                 }
             }
-            None => anyhow::bail!("CSRF TOKEN mismatch"),
+            // Of Course, incase of csrf token mismatch, a redirect to specified redirect_url would be a nice take.
+            None => Ok(PassportResponse::FailureRedirect(
+                self.types.get(&self.current).unwrap().failure_redirect(),
+            )),
         }
     }
 }
