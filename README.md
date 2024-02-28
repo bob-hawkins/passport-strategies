@@ -41,7 +41,4 @@ The `passport-strategy` authenticates users using the desired provider account a
 
 1. Improved error handling when user cancels authorization or incase of csrf and code challenge mismatch.
 2. Discord Strategy integration.
-
-# Collaboration
-
-I will be more than ready to accept pull requests. Also, if this project helped you, leave a star on github.
+3. I noticed that I accidentally debugged the access token in v0.1.4, so i had to remove it.
