@@ -155,7 +155,6 @@ impl PassPortBasicClient {
                 {
                     Ok(access_token) => {
                         self.sessions.remove(statecode.state.unwrap().secret());
-                        dbg!(&access_token);
                         let response = reqwest::Client::new()
                             .get(self.types.get(&self.current).unwrap().request_uri())
                             .header(
