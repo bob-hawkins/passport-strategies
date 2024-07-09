@@ -4,6 +4,34 @@ use colored::Colorize;
 use oauth2::{Scope, TokenUrl};
 use reqwest::Url;
 
+
+#[derive(Debug, Clone)]
+struct FortyTwoStrategy {
+    pub(crate) client_id: String,
+    pub(crate) client_secret: String,
+    pub(crate) auth_uri: String,
+    pub(crate) scopes: Vec<Scope>,
+    pub(crate) request_uri: String,
+    pub(crate) token_uri: String,
+    pub(crate) redirect_uri: String,
+    pub(crate) failure_redirect: String,
+}
+
+impl Default for FortyTwoStrategy {
+    fn default() -> Self {
+        FortyTwoStrategy {
+            client_id: String::new(),
+            client_secret: String::new(),
+            auth_uri: String::from("https://api.intra.42.fr/oauth/authorize"),
+            scopes: Vec::new(),
+            token_uri: String::from("https://api.intra.42.fr/oauth/token"),
+            request_uri: String::from("https://api.intra.42.fr/v2/me"),
+            redirect_uri: String::new(),
+            failure_redirect: String::new(),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct FacebookStrategy {
     pub(crate) client_id: String,
@@ -228,7 +256,8 @@ strategy!(
     GoogleStrategy,
     MicrosoftStrategy,
     FacebookStrategy,
-    DiscordStrategy
+    DiscordStrategy,
+    FortyTwoStrategy
 );
 
 new_strategy!(
@@ -236,7 +265,8 @@ new_strategy!(
     GoogleStrategy,
     MicrosoftStrategy,
     FacebookStrategy,
-    DiscordStrategy
+    DiscordStrategy,
+    FortyTwoStrategy
 );
 
 // impl<C> Message for Strategies<C>
