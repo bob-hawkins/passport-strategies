@@ -80,7 +80,7 @@ async fn main() -> anyhow::Result<()> {
             .app_data(passport_clone.clone())
             .route("/signup", web::get().to(signup_get))
             .route("/microsoft", web::get().to(msft))
-            .route("/auth/microsoft", web::get().to(authenticate_msft))
+            .route("/<redirect_endpoint>", web::get().to(authenticate_msft))
     })
     .bind("127.0.0.1:<redirect_url_port>")?
     .run()
