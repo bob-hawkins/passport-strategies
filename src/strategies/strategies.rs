@@ -4,9 +4,16 @@ use colored::Colorize;
 use oauth2::{Scope, TokenUrl};
 use reqwest::Url;
 
+use super::{
+    DISCORD_AUTH_URL, DISCORD_REQUEST_URL, DISCORD_TOKEN_URL, FACEBOOK_AUTH_URL,
+    FACEBOOK_REQUEST_URL, FACEBOOK_TOKEN_URL, FORTYTWO_AUTH_URL, FORTYTWO_REQUEST_URL,
+    FORTYTWO_TOKEN_URL, GITHUB_AUTH_URL, GITHUB_REQUEST_URL, GITHUB_TOKEN_URL, GOOGLE_AUTH_URL,
+    GOOGLE_REQUEST_URL, GOOGLE_TOKEN_URL, MICROSOFT_AUTH_URL, MICROSOFT_REQUEST_URL,
+    MICROSOFT_TOKEN_URL,
+};
 
 #[derive(Debug, Clone)]
-struct FortyTwoStrategy {
+pub struct FortyTwoStrategy {
     pub(crate) client_id: String,
     pub(crate) client_secret: String,
     pub(crate) auth_uri: String,
@@ -22,10 +29,10 @@ impl Default for FortyTwoStrategy {
         FortyTwoStrategy {
             client_id: String::new(),
             client_secret: String::new(),
-            auth_uri: String::from("https://api.intra.42.fr/oauth/authorize"),
+            auth_uri: String::from(FORTYTWO_AUTH_URL),
             scopes: Vec::new(),
-            token_uri: String::from("https://api.intra.42.fr/oauth/token"),
-            request_uri: String::from("https://api.intra.42.fr/v2/me"),
+            token_uri: String::from(FORTYTWO_TOKEN_URL),
+            request_uri: String::from(FORTYTWO_REQUEST_URL),
             redirect_uri: String::new(),
             failure_redirect: String::new(),
         }
@@ -49,10 +56,10 @@ impl Default for FacebookStrategy {
         Self {
             client_id: String::new(),
             client_secret: String::new(),
-            auth_uri: String::from("https://www.facebook.com/v18.0/dialog/oauth"),
+            auth_uri: String::from(FACEBOOK_AUTH_URL),
             scopes: Vec::new(),
-            token_uri: String::from("https://graph.facebook.com/v18.0/oauth/access_token"),
-            request_uri: String::from("https://graph.facebook.com/me"),
+            token_uri: String::from(FACEBOOK_TOKEN_URL),
+            request_uri: String::from(FACEBOOK_REQUEST_URL),
             redirect_uri: String::new(),
             failure_redirect: String::new(),
         }
@@ -76,12 +83,12 @@ impl Default for GoogleStrategy {
         Self {
             client_id: String::new(),
             client_secret: String::new(),
-            auth_uri: String::from("https://accounts.google.com/o/oauth2/auth"),
+            auth_uri: String::from(GOOGLE_AUTH_URL),
             scopes: Vec::new(),
-            token_uri: String::from("https://oauth2.googleapis.com/token"),
-            request_uri: String::from("https://people.googleapis.com/v1/people/me?personFields=names,emailAddresses,phoneNumbers,metadata,nicknames,photos,userDefined,skills,clientData,addresses,birthdays,calendarUrls,events,ageRanges,interests,coverPhotos,biographies,genders,imClients,memberships,locations,miscKeywords,relations,organizations,urls,userDefined,sipAddresses,occupations,locales"),
+            token_uri: String::from(GOOGLE_TOKEN_URL),
+            request_uri: String::from(GOOGLE_REQUEST_URL),
             redirect_uri: String::new(),
-            failure_redirect: String::new()
+            failure_redirect: String::new(),
         }
     }
 }
@@ -103,17 +110,15 @@ impl Default for GithubStrategy {
         GithubStrategy {
             client_id: String::new(),
             client_secret: String::new(),
-            auth_uri: String::from("https://github.com/login/oauth/authorize"),
+            auth_uri: String::from(GITHUB_AUTH_URL),
             scopes: Vec::new(),
-            token_uri: String::from("https://github.com/login/oauth/access_token"),
-            request_uri: String::from("https://api.github.com/user"),
+            token_uri: String::from(GITHUB_TOKEN_URL),
+            request_uri: String::from(GITHUB_REQUEST_URL),
             redirect_uri: String::new(),
             failure_redirect: String::new(),
         }
     }
 }
-
-
 
 #[derive(Debug, Clone)]
 pub struct DiscordStrategy {
@@ -132,16 +137,15 @@ impl Default for DiscordStrategy {
         DiscordStrategy {
             client_id: String::new(),
             client_secret: String::new(),
-            auth_uri: String::from("https://discord.com/oauth2/authorize"),
+            auth_uri: String::from(DISCORD_AUTH_URL),
             scopes: Vec::new(),
-            token_uri: String::from("https://discord.com/api/oauth2/token"),
-            request_uri: String::from("https://discord.com/api/users/@me"),
+            token_uri: String::from(DISCORD_TOKEN_URL),
+            request_uri: String::from(DISCORD_REQUEST_URL),
             redirect_uri: String::new(),
             failure_redirect: String::new(),
         }
     }
 }
-
 
 #[derive(Clone, Debug)]
 pub struct MicrosoftStrategy {
@@ -160,12 +164,12 @@ impl Default for MicrosoftStrategy {
         Self {
             client_id: String::new(),
             client_secret: String::new(),
-            auth_uri: String::from("https://login.microsoftonline.com/common/oauth2/v2.0/authorize?prompt=select_account"),
+            auth_uri: String::from(MICROSOFT_AUTH_URL),
             scopes: Vec::new(),
-            token_uri: String::from("https://login.microsoftonline.com/common/oauth2/v2.0/token"),
-            request_uri: String::from("https://graph.microsoft.com/v1.0/me"),
+            token_uri: String::from(MICROSOFT_TOKEN_URL),
+            request_uri: String::from(MICROSOFT_REQUEST_URL),
             redirect_uri: String::new(),
-            failure_redirect: String::new()
+            failure_redirect: String::new(),
         }
     }
 }
@@ -177,8 +181,8 @@ pub trait Strategy: Debug {
     fn client_id(&self) -> String;
     fn client_secret(&self) -> String;
     fn auth_url(&self) -> String;
-    fn token_url(&self) -> Option<TokenUrl>;
-    fn failure_redirect(&self) -> Url;
+    fn token_url(&self) -> anyhow::Result<TokenUrl>;
+    fn failure_redirect(&self) -> anyhow::Result<Url>;
 }
 
 macro_rules! new_strategy {
@@ -233,17 +237,17 @@ macro_rules! strategy {
                     self.redirect_uri.clone()
                 }
 
-                fn failure_redirect(&self) -> Url {
+                fn failure_redirect(&self) -> anyhow::Result<Url> {
                     match self.failure_redirect.parse::<reqwest::Url>() {
-                        Ok(url) =>  url,
-                        Err(err) => panic!("{}{:?}", "Invalid Url".bold().red(), err)
+                        Ok(url) =>  Ok(url),
+                        Err(err) => anyhow::bail!("{}{:?}", "Invalid Redirect Url".bold().red(), err)
                     }
                 }
 
-                fn token_url(&self) -> Option<TokenUrl> {
+                fn token_url(&self) -> anyhow::Result<TokenUrl> {
                     match TokenUrl::new(self.token_uri.clone()) {
-                        Ok(token) => Some(token),
-                        Err(err) => panic!("{}{}", "Invalid Token URL: ".bold().red(), err),
+                        Ok(token) => Ok(token),
+                        Err(err) => anyhow::bail!("{}{}", "Invalid Token URL: ".bold().red(), err),
                     }
                 }
             }
@@ -268,11 +272,3 @@ new_strategy!(
     DiscordStrategy,
     FortyTwoStrategy
 );
-
-// impl<C> Message for Strategies<C>
-// where
-//     C: std::marker::Unpin + ToString + Clone + Send + 'static,
-//     Self: Strategy<C> + std::marker::Unpin + Send + 'static,
-// {
-//     type Result = Option<PassPortBasicClient<Self, C>>;
-// }

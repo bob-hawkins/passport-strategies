@@ -1,12 +1,12 @@
 [package]
 name = "passport-strategies"
-version = "0.1.5"
+version = "0.1.7"
 authors = ["Bob Hawkins <Kinghawkins61@gmail.com>"]
 license = "MIT"
-description = "A thin wrapper on top of oauth2-rs that simplifies auth flow."
-repository = "https://github.com/KingHawkins/passport-strategies"
+description = "A thin wrapper on top of oauth2-rs that simplifies oauth2 authentication."
+repository = "https://github.com/bob-hawkins/passport-strategies"
 edition = "2021"
-keywords = ["oauth2", "passport", "strategies", "auth"]
+keywords = ["oauth2", "passport", "strategies", "authentication"]
 readme = "README.md"
 categories = ["oauth2", "web development"]
 
