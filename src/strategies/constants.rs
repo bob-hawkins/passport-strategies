@@ -1,5 +1,3 @@
-#![allow(unused)]
-
 // Google
 pub(crate) const GOOGLE_AUTH_URL: &'static str = "https://accounts.google.com/o/oauth2/auth";
 pub(crate) const GOOGLE_TOKEN_URL: &'static str = "https://oauth2.googleapis.com/token";
@@ -33,3 +31,9 @@ pub(crate) const FACEBOOK_AUTH_URL: &'static str = "https://www.facebook.com/v18
 pub(crate) const FACEBOOK_TOKEN_URL: &'static str =
     "https://graph.facebook.com/v18.0/oauth/access_token";
 pub(crate) const FACEBOOK_REQUEST_URL: &'static str = "https://graph.facebook.com/me";
+
+// Reddit
+pub(crate) const REDDIT_AUTH_URL: &'static str =
+    "https://www.reddit.com/api/v1/authorize?duration=permanent";
+pub(crate) const REDDIT_TOKEN_URL: &'static str = "https://www.reddit.com/api/v1/access_token";
+pub(crate) const REDDIT_REQUEST_URL: &'static str = "https://oauth.reddit.com/api/v1/me";

@@ -1,5 +1,3 @@
-use anyhow::{anyhow, bail};
-use colored::Colorize;
 use oauth2::basic::BasicClient;
 use oauth2::reqwest::async_http_client;
 use oauth2::{
@@ -8,11 +6,14 @@ use oauth2::{
 };
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use tracing::{info, warn};
 
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::strategies::Strategy;
+use crate::error::Error;
+use crate::strategies::{PAccessToken, PRefreshToken, Strategy};
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct StateCode {
@@ -20,9 +21,27 @@ pub struct StateCode {
     code: Option<String>,
 }
 
-pub enum PassportResponse {
-    FailureRedirect(Url),
-    Profile(serde_json::Value),
+pub struct Redirect {
+    failure_redirect: Url,
+    success_redirect: Url,
+}
+
+impl Redirect {
+    pub fn new(failure_redirect: &str, success_redirect: &str) -> Result<Self, Error> {
+        let redirect = failure_redirect
+            .parse::<reqwest::Url>()
+            .map_err(Error::ParseError)
+            .map(|r| r)?;
+        let success = success_redirect
+            .parse::<reqwest::Url>()
+            .map_err(Error::ParseError)
+            .map(|r| r)?;
+
+        Ok(Self {
+            failure_redirect: redirect,
+            success_redirect: success,
+        })
+    }
 }
 
 #[derive(Clone, Eq, PartialEq, Hash)]
@@ -33,6 +52,14 @@ pub enum Choice {
     Facebook,
     Discord,
     FortyTwo,
+    Reddit,
+}
+
+#[derive(Debug, Clone)]
+pub struct Oauth2ServerResponse {
+    pub access_token: PAccessToken,
+    pub refresh_token: Option<PRefreshToken>,
+    pub profile: Value,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -44,11 +71,12 @@ pub struct Passport {
     /// This stores each [`BasicClient`] associated with each [`Strategy`] which will be used to communicate
     /// with the respected provider oauth2 server.
     clients: HashMap<Choice, BasicClient>,
-    /// Strategy been operated on currently
-    current: Option<Choice>,
     /// [`CsrfToken`] and [`PkceCodeVerifier`]. We need to keep a track of the two which will be used
-    /// in getting the [`AccessToken`] from the provider. Thereafter, be deleted from the storage since will no longer be needed.
+    /// in getting the [`AccessToken`] from the provider.
+    /// Thereafter, be deleted from the storage since will no longer be needed.
     sessions: HashMap<String, String>,
+    success_redirect: Option<Url>,
+    failure_redirect: Option<Url>,
 }
 
 impl Default for Passport {
@@ -56,8 +84,9 @@ impl Default for Passport {
         Self {
             strategies: HashMap::new(),
             clients: HashMap::new(),
-            current: None,
             sessions: HashMap::new(),
+            success_redirect: None,
+            failure_redirect: None,
         }
     }
 }
@@ -66,28 +95,35 @@ unsafe impl Send for Passport {}
 unsafe impl Sync for Passport {}
 
 impl Passport {
-    const USER_AGENT: &'static str = "Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1";
+    const USER_AGENT: &'static str =
+        "passport-strategies/1.0 (+https://crates.io/crates/passport-strategies)";
 
-    pub fn authenticate(&mut self, state: Choice) -> anyhow::Result<()> {
-        self.current = Some(state);
+    pub fn redirect_urls(mut self, redirects: Redirect) -> Self {
+        self.success_redirect = Some(redirects.success_redirect);
+        self.failure_redirect = Some(redirects.failure_redirect);
 
-        Ok(())
+        self
     }
 
-    /// The [`BasicClient`] for each [`Strategy`] is stored. It will be used later on to communicate with oauth2 server
-    pub fn strategize<T: Strategy + Send + Clone + 'static>(
-        &mut self,
-        current: Choice,
-        strategy: T,
-    ) -> anyhow::Result<()> {
+    pub fn redirects(&self) -> Redirect {
+        Redirect {
+            failure_redirect: self.failure_redirect.as_ref().unwrap().clone(),
+            success_redirect: self.success_redirect.as_ref().unwrap().clone(),
+        }
+    }
+
+    pub fn strategize<T>(mut self, current: Choice, strategy: T) -> Result<Self, Error>
+    where
+        T: Strategy + Sync + Send + 'static,
+    {
         let auth = match AuthUrl::new(strategy.auth_url().to_string()) {
             Ok(auth_uri) => auth_uri,
-            Err(err) => bail!("{}{}", "Invalid Authentication URL: ".bold().red(), err),
+            Err(err) => return Err(Error::ParseError(err)),
         };
 
         let redirect_url = match RedirectUrl::new(strategy.redirect_url().to_string()) {
             Ok(uri) => uri,
-            Err(err) => bail!("{}{}", "Invalid Redirect URL: ".bold().red(), err),
+            Err(err) => return Err(Error::ParseError(err)),
         };
 
         let client = BasicClient::new(
@@ -99,34 +135,27 @@ impl Passport {
         .set_redirect_uri(redirect_url);
 
         self.clients.insert(current.clone(), client);
-        self.strategies.insert(current, Arc::new(strategy));
+        self.strategies.insert(current.clone(), Arc::new(strategy));
 
-        Ok(())
+        Ok(self)
     }
 
-    pub fn generate_redirect_url(&mut self) -> anyhow::Result<String> {
+    pub fn redirect_url(&mut self, choice: Choice) -> String {
         let (pkce_challenge, verifier) = PkceCodeChallenge::new_random_sha256();
-
-        // self.current is the controlling factor for passport to know which strategy is currently being operated on.
-        // so, it must be set first.
-        if let None = self.current {
-            bail!(
-                "[`Passport::generate_redirect_url`] should be called after `self.current` is set"
-            )
-        }
-
-        let current = self.current.as_ref().unwrap();
-        let strategy = self.strategies.get(&current).unwrap();
+        let strategy = self.strategies.get(&choice).unwrap();
         let scopes = strategy.scopes();
-        let client = self.clients.get(&current).unwrap();
+        let client = self.clients.get(&choice).unwrap();
         let (auth_url, csrf_token) = client
             .authorize_url(CsrfToken::new_random)
             .set_pkce_challenge(pkce_challenge)
             .add_scopes(scopes)
             .url();
 
-        // We need to keep track of the `PkceVerifier` since it will be needed later to verify the `Authorization Code` later sent from the provider server. Tricky, `PkceVerifier` neither implements `Copy` nor `Clone`
-        // but only implements `Serialize` and `Deserialize`. So, serializing it to a String then storing it will enable us to work with its clone in
+        // We need to keep track of the `PkceVerifier` since it will be needed later to verify
+        // the `Authorization Code` later sent from the provider server.
+        // Tricky, `PkceVerifier` neither implements `Copy` nor `Clone`
+        // but only implements `Serialize` and `Deserialize`. So, serializing it to a String then
+        // storing it will enable us to work with its clone in
         // `Passport::profile` when setting a pkce verifier for the `Authorization Code`. This way, the compiler won't complain.
         let data = Verifier(verifier);
         let json_value = serde_json::to_string(&data).unwrap();
@@ -134,25 +163,49 @@ impl Passport {
         self.sessions
             .insert(csrf_token.secret().to_string(), json_value);
 
-        Ok(auth_url.to_string())
+        auth_url.to_string()
     }
 
-    pub async fn profile(&mut self, statecode: StateCode) -> anyhow::Result<PassportResponse> {
-        // self.current is the controlling factor for passport to know which strategy is currently being operated on.
-        // so, it must be set first.
-        if let None = self.current {
-            bail!("[`Passport::profile`] should be called after `self.current` is set")
+    pub async fn authenticate(
+        &mut self,
+        choice: Choice,
+        statecode: StateCode,
+        redirects: Redirect,
+    ) -> (Option<Oauth2ServerResponse>, String) {
+        match self.profile(choice, statecode).await {
+            Ok(value) => {
+                info!("oauth2 authentication completed with no errors");
+
+                (Some(value), redirects.success_redirect.to_string())
+            }
+
+            Err(error) => {
+                warn!(?error);
+
+                (None, redirects.failure_redirect.to_string())
+            }
+        }
+    }
+
+    async fn profile(
+        &mut self,
+        choice: Choice,
+        statecode: StateCode,
+    ) -> Result<Oauth2ServerResponse, Error> {
+        if statecode.state.is_none() && statecode.code.is_none() {
+            return Err(Error::MissingAuthorizationCodeAndCsrfToken);
         }
 
-        let current = self.current.as_ref().unwrap();
-
-        // Adding check for StateCode for handling errors incase the authorization is cancelled by the user or csrf and code challenge mismatch.
-        // This mean that unlike the previous versions, passport response enum is returned. It can either be a failure_redirect or json profile.
-        if statecode.state.is_none() || statecode.code.is_none() {
-            return Ok(PassportResponse::FailureRedirect(
-                self.strategies.get(&current).unwrap().failure_redirect()?,
-            ));
+        if statecode.state.is_none() {
+            return Err(Error::MissingCsrfToken);
         }
+
+        if statecode.code.is_none() {
+            return Err(Error::MissingAuthorizationCode);
+        }
+
+        let bind = self.strategies.clone();
+        let strategy = bind.get(&choice).unwrap();
 
         match self
             .sessions
@@ -160,66 +213,110 @@ impl Passport {
         {
             Some(verifier) => {
                 let json_pkce: Verifier = serde_json::from_str(&verifier).unwrap();
-                let clients = self.clients.get(&current).unwrap();
-                match clients
-                    .clone()
-                    .exchange_code(AuthorizationCode::new(statecode.code.unwrap().clone()))
-                    .set_pkce_verifier(json_pkce.0)
-                    .request_async(async_http_client)
-                    .await
-                {
-                    Ok(access_token) => {
-                        self.sessions.remove(statecode.state.unwrap().secret());
+                let clients = self.clients.get(&choice).unwrap();
 
-                        match reqwest::Client::new()
-                            .get(self.strategies.get(&current).unwrap().request_uri())
-                            .header(
-                                reqwest::header::AUTHORIZATION,
-                                format!("Bearer {}", access_token.access_token().secret()),
-                            )
-                            .header(reqwest::header::USER_AGENT, Self::USER_AGENT)
-                            .send()
+                if let Choice::Reddit = choice {
+                    let response = reqwest::Client::new()
+                        .post(strategy.token_url()?.to_string())
+                        .basic_auth(strategy.client_id(), Some(strategy.client_secret()))
+                        .form(&[
+                            ("grant_type", "authorization_code"),
+                            ("code", statecode.code.clone().unwrap().as_str()),
+                            ("redirect_uri", &strategy.redirect_url()),
+                            ("code_verifier", &verifier),
+                        ])
+                        .header(reqwest::header::USER_AGENT, Self::USER_AGENT)
+                        .send()
+                        .await
+                        .map_err(|e| Error::Reqwest(e.to_string()))
+                        .map(|v| v)?;
+
+                    if response.status().is_success() {
+                        response
+                            .json::<serde_json::Value>()
                             .await
-                        {
-                            Ok(response) => {
-                                if response.status().is_success() {
-                                    response
-                                        .json::<serde_json::Value>()
-                                        .await
-                                        .map_err(|error| anyhow!(error))
-                                        .map(|mut profile| {
-                                            profile["access_token"] =
-                                                serde_json::json!(access_token
-                                                    .access_token()
-                                                    .secret());
-                                            profile["refresh_token"] =
-                                                match access_token.refresh_token() {
-                                                    Some(token) => {
-                                                        serde_json::json!(Some::<String>(
-                                                            token.secret().into()
-                                                        ))
-                                                    }
-                                                    None => serde_json::json!(None::<String>),
-                                                };
-                                            PassportResponse::Profile(profile)
-                                        })
-                                } else {
-                                    anyhow::bail!(response.text().await.unwrap())
-                                }
-                            }
-                            Err(e) => bail!(e),
-                        }
+                            .map_err(|error| Error::Reqwest(error.to_string()))
+                            .map(|profile| async move {
+                                let mut refresh_token = None;
+
+                                let access_token =
+                                    PAccessToken(profile["access_token"].to_string());
+
+                                if profile["refresh_token"].is_string() {
+                                    refresh_token =
+                                        Some(PRefreshToken(profile["refresh_token"].to_string()));
+                                };
+
+                                return Ok(Oauth2ServerResponse {
+                                    access_token,
+                                    refresh_token,
+                                    profile,
+                                });
+                            })?
+                            .await
+                    } else {
+                        return Err(Error::Reqwest(response.text().await.unwrap()));
                     }
-                    Err(err) => {
-                        self.sessions.remove(statecode.state.unwrap().secret());
-                        anyhow::bail!(err.to_string())
+                } else {
+                    match clients
+                        .clone()
+                        .exchange_code(AuthorizationCode::new(statecode.code.clone().unwrap()))
+                        .set_pkce_verifier(json_pkce.0)
+                        .request_async(async_http_client)
+                        .await
+                    {
+                        Ok(token) => {
+                            self.sessions.remove(statecode.state.unwrap().secret());
+
+                            match reqwest::Client::new()
+                                .get(strategy.request_uri())
+                                .header(
+                                    reqwest::header::AUTHORIZATION,
+                                    format!("Bearer {}", token.access_token().secret()),
+                                )
+                                .header(reqwest::header::USER_AGENT, Self::USER_AGENT)
+                                .send()
+                                .await
+                            {
+                                Ok(response) => {
+                                    if response.status().is_success() {
+                                        response
+                                            .json::<serde_json::Value>()
+                                            .await
+                                            .map_err(|error| Error::Reqwest(error.to_string()))
+                                            .map(|profile| {
+                                                let mut refresh_token = None;
+
+                                                let access_token = PAccessToken(
+                                                    token.access_token().secret().into(),
+                                                );
+
+                                                if let Some(re) = token.refresh_token() {
+                                                    refresh_token =
+                                                        Some(PRefreshToken(re.secret().to_owned()));
+                                                };
+
+                                                return Ok(Oauth2ServerResponse {
+                                                    access_token,
+                                                    refresh_token,
+                                                    profile,
+                                                });
+                                            })?
+                                    } else {
+                                        Err(Error::Reqwest(response.text().await.unwrap()))
+                                    }
+                                }
+                                Err(e) => Err(Error::Reqwest(e.to_string())),
+                            }
+                        }
+                        Err(err) => {
+                            self.sessions.remove(statecode.state.unwrap().secret());
+                            Err(Error::Reqwest(err.to_string()))
+                        }
                     }
                 }
             }
-            // Of Course, incase of csrf token mismatch, a redirect to specified redirect_url would be a nice take.
-            None => Ok(PassportResponse::FailureRedirect(
-                self.strategies.get(&current).unwrap().failure_redirect()?,
-            )),
+            None => Err(Error::CSRFTokenMismatch),
         }
     }
 }

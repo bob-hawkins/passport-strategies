@@ -38,8 +38,9 @@
 //!
 //!    pub async fn discord(passport: Data<RwLock<PassPortBasicClient>>) -> HttpResponse {
 //!        let mut auth = passport.write().await;
-//!        auth.authenticate(Choice::Discord).unwrap();
-//!        let url = auth.generate_redirect_url().unwrap();
+//!      
+//!        let url = auth.redirect_url(Choice::Discord);
+//!
 //!        HttpResponse::SeeOther()
 //!            .append_header((http::header::LOCATION, url))
 //!            .finish()
@@ -51,7 +52,7 @@
 //!    ) -> HttpResponse {
 //!        let mut auth = auth.write().await;
 //!        /// The `response` is an enum. It can either be a failure_redirect or profile
-//!        match auth.get_profile(authstate.0).await {
+//!        match auth.profile(Choice::Discord, authstate.0).await {
 //!            /// The profile is a json value containing the user profile, access_token and refresh_token.
 //!            Ok(response) => {
 //!                   match response {
@@ -93,9 +94,8 @@
 //!            DiscordStrategy::new(
 //!                "<client_id>",
 //!                "<client_secret>",
-//!                vec!["<scope>"],
+//!                &["<scopes>"],
 //!                "<redirect_url>",
-//!                "<failure_redirect>"
 //!            ),
 //!        );
 //!        
@@ -120,6 +120,8 @@
 pub mod passport;
 
 // # Strategies
-/// Contains all the basic strategies  `DiscordStrategy`, `GoogleStrategy`, `MicrosoftStrategy`, `GithubStrategy`, `FortyTwoStrategy` and `FacebookStrategy`.
+/// Contains all the basic strategies  `DiscordStrategy`, `GoogleStrategy`, `MicrosoftStrategy`, `GithubStrategy`, `FortyTwoStrategy`, `RedditStrategy` and `FacebookStrategy`.
 ///  Other strategies will be added later.
 pub mod strategies;
+
+pub mod error;

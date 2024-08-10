@@ -1,54 +1,56 @@
-use std::fmt::Debug;
-
-use colored::Colorize;
-use oauth2::{Scope, TokenUrl};
-use reqwest::Url;
+use std::fmt::{Debug, Display};
 
 use super::{
     DISCORD_AUTH_URL, DISCORD_REQUEST_URL, DISCORD_TOKEN_URL, FACEBOOK_AUTH_URL,
     FACEBOOK_REQUEST_URL, FACEBOOK_TOKEN_URL, FORTYTWO_AUTH_URL, FORTYTWO_REQUEST_URL,
     FORTYTWO_TOKEN_URL, GITHUB_AUTH_URL, GITHUB_REQUEST_URL, GITHUB_TOKEN_URL, GOOGLE_AUTH_URL,
     GOOGLE_REQUEST_URL, GOOGLE_TOKEN_URL, MICROSOFT_AUTH_URL, MICROSOFT_REQUEST_URL,
-    MICROSOFT_TOKEN_URL,
+    MICROSOFT_TOKEN_URL, REDDIT_AUTH_URL, REDDIT_REQUEST_URL, REDDIT_TOKEN_URL,
 };
+use oauth2::{Scope, TokenUrl};
 
-#[derive(Debug, Clone)]
-pub struct FortyTwoStrategy {
-    pub(crate) client_id: String,
-    pub(crate) client_secret: String,
-    pub(crate) auth_uri: String,
-    pub(crate) scopes: Vec<Scope>,
-    pub(crate) request_uri: String,
-    pub(crate) token_uri: String,
-    pub(crate) redirect_uri: String,
-    pub(crate) failure_redirect: String,
-}
+#[derive(Clone)]
+pub struct PAccessToken(pub String);
 
-impl Default for FortyTwoStrategy {
-    fn default() -> Self {
-        FortyTwoStrategy {
-            client_id: String::new(),
-            client_secret: String::new(),
-            auth_uri: String::from(FORTYTWO_AUTH_URL),
-            scopes: Vec::new(),
-            token_uri: String::from(FORTYTWO_TOKEN_URL),
-            request_uri: String::from(FORTYTWO_REQUEST_URL),
-            redirect_uri: String::new(),
-            failure_redirect: String::new(),
-        }
+impl Display for PAccessToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", "PAccessToken([Redacted])")
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct FacebookStrategy {
-    pub(crate) client_id: String,
-    pub(crate) client_secret: String,
-    pub(crate) auth_uri: String,
-    pub(crate) scopes: Vec<Scope>,
-    pub(crate) request_uri: String,
-    pub(crate) token_uri: String,
-    pub(crate) redirect_uri: String,
-    pub(crate) failure_redirect: String,
+impl Debug for PAccessToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", "PAccessToken([Redacted])")
+    }
+}
+
+#[derive(Clone)]
+pub struct PRefreshToken(pub String);
+
+impl Display for PRefreshToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", "PRefreshToken([Redacted])")
+    }
+}
+
+impl Debug for PRefreshToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", "PRefreshToken([Redacted])")
+    }
+}
+
+impl Default for RedditStrategy {
+    fn default() -> Self {
+        Self {
+            client_id: String::new(),
+            client_secret: String::new(),
+            auth_uri: String::from(REDDIT_AUTH_URL),
+            scopes: Vec::new(),
+            token_uri: String::from(REDDIT_TOKEN_URL),
+            request_uri: String::from(REDDIT_REQUEST_URL),
+            redirect_uri: String::new(),
+        }
+    }
 }
 
 impl Default for FacebookStrategy {
@@ -61,21 +63,8 @@ impl Default for FacebookStrategy {
             token_uri: String::from(FACEBOOK_TOKEN_URL),
             request_uri: String::from(FACEBOOK_REQUEST_URL),
             redirect_uri: String::new(),
-            failure_redirect: String::new(),
         }
     }
-}
-
-#[derive(Debug, Clone)]
-pub struct GoogleStrategy {
-    pub(crate) client_id: String,
-    pub(crate) client_secret: String,
-    pub(crate) auth_uri: String,
-    pub(crate) scopes: Vec<Scope>,
-    pub(crate) request_uri: String,
-    pub(crate) token_uri: String,
-    pub(crate) redirect_uri: String,
-    pub(crate) failure_redirect: String,
 }
 
 impl Default for GoogleStrategy {
@@ -88,21 +77,8 @@ impl Default for GoogleStrategy {
             token_uri: String::from(GOOGLE_TOKEN_URL),
             request_uri: String::from(GOOGLE_REQUEST_URL),
             redirect_uri: String::new(),
-            failure_redirect: String::new(),
         }
     }
-}
-
-#[derive(Debug, Clone)]
-pub struct GithubStrategy {
-    pub(crate) client_id: String,
-    pub(crate) client_secret: String,
-    pub(crate) auth_uri: String,
-    pub(crate) scopes: Vec<Scope>,
-    pub(crate) request_uri: String,
-    pub(crate) token_uri: String,
-    pub(crate) redirect_uri: String,
-    pub(crate) failure_redirect: String,
 }
 
 impl Default for GithubStrategy {
@@ -115,21 +91,8 @@ impl Default for GithubStrategy {
             token_uri: String::from(GITHUB_TOKEN_URL),
             request_uri: String::from(GITHUB_REQUEST_URL),
             redirect_uri: String::new(),
-            failure_redirect: String::new(),
         }
     }
-}
-
-#[derive(Debug, Clone)]
-pub struct DiscordStrategy {
-    pub(crate) client_id: String,
-    pub(crate) client_secret: String,
-    pub(crate) auth_uri: String,
-    pub(crate) scopes: Vec<Scope>,
-    pub(crate) request_uri: String,
-    pub(crate) token_uri: String,
-    pub(crate) redirect_uri: String,
-    pub(crate) failure_redirect: String,
 }
 
 impl Default for DiscordStrategy {
@@ -142,21 +105,8 @@ impl Default for DiscordStrategy {
             token_uri: String::from(DISCORD_TOKEN_URL),
             request_uri: String::from(DISCORD_REQUEST_URL),
             redirect_uri: String::new(),
-            failure_redirect: String::new(),
         }
     }
-}
-
-#[derive(Clone, Debug)]
-pub struct MicrosoftStrategy {
-    pub(crate) client_id: String,
-    pub(crate) client_secret: String,
-    pub(crate) auth_uri: String,
-    pub(crate) scopes: Vec<Scope>,
-    pub(crate) request_uri: String,
-    pub(crate) token_uri: String,
-    pub(crate) redirect_uri: String,
-    pub(crate) failure_redirect: String,
 }
 
 impl Default for MicrosoftStrategy {
@@ -169,51 +119,68 @@ impl Default for MicrosoftStrategy {
             token_uri: String::from(MICROSOFT_TOKEN_URL),
             request_uri: String::from(MICROSOFT_REQUEST_URL),
             redirect_uri: String::new(),
-            failure_redirect: String::new(),
         }
     }
 }
 
-pub trait Strategy: Debug {
+impl Default for FortyTwoStrategy {
+    fn default() -> Self {
+        FortyTwoStrategy {
+            client_id: String::new(),
+            client_secret: String::new(),
+            auth_uri: String::from(FORTYTWO_AUTH_URL),
+            scopes: Vec::new(),
+            token_uri: String::from(FORTYTWO_TOKEN_URL),
+            request_uri: String::from(FORTYTWO_REQUEST_URL),
+            redirect_uri: String::new(),
+        }
+    }
+}
+
+pub trait Strategy: Send + Sync {
     fn redirect_url(&self) -> String;
     fn request_uri(&self) -> String;
     fn scopes(&self) -> Vec<Scope>;
     fn client_id(&self) -> String;
     fn client_secret(&self) -> String;
     fn auth_url(&self) -> String;
-    fn token_url(&self) -> anyhow::Result<TokenUrl>;
-    fn failure_redirect(&self) -> anyhow::Result<Url>;
+    fn token_url(&self) -> Result<TokenUrl, Error>;
 }
 
-macro_rules! new_strategy {
-    ($($name:ty),*) => {
+macro_rules! create_struct {
+    ($($name:ident),*) => {
+        use crate::error::Error;
         $(
+            #[derive(Clone)]
+            pub struct $name {
+                pub(crate) client_id: String,
+                pub(crate) client_secret: String,
+                pub(crate) auth_uri: String,
+                pub(crate) scopes: Vec<Scope>,
+                pub(crate) request_uri: String,
+                pub(crate) token_uri: String,
+                pub(crate) redirect_uri: String,
+            }
+
             impl $name {
                 pub fn new(
                     client_id: &str,
                     client_secret: &str,
-                    scopes: Vec<&str>,
+                    scopes: &[&str],
                     redirect_uri: &str,
-                    failure_redirect: &str
                 ) -> Self {
                     let mut strategy = Self::default();
                     strategy.client_id.push_str(client_id);
                     strategy.client_secret.push_str(client_secret);
                     strategy.redirect_uri.push_str(redirect_uri);
-                    strategy.failure_redirect.push_str(failure_redirect);
+
                     strategy
                         .scopes
                         .extend(scopes.iter().map(ToString::to_string).map(Scope::new));
                     strategy
                 }
             }
-        )*
-    };
-}
 
-macro_rules! strategy {
-    ($($name:ty),*) => {
-        $(
             impl Strategy for $name {
                 fn request_uri(&self) -> String {
                     self.request_uri.clone()
@@ -237,38 +204,25 @@ macro_rules! strategy {
                     self.redirect_uri.clone()
                 }
 
-                fn failure_redirect(&self) -> anyhow::Result<Url> {
-                    match self.failure_redirect.parse::<reqwest::Url>() {
-                        Ok(url) =>  Ok(url),
-                        Err(err) => anyhow::bail!("{}{:?}", "Invalid Redirect Url".bold().red(), err)
-                    }
-                }
-
-                fn token_url(&self) -> anyhow::Result<TokenUrl> {
+                fn token_url(&self) -> Result<TokenUrl, Error> {
                     match TokenUrl::new(self.token_uri.clone()) {
                         Ok(token) => Ok(token),
-                        Err(err) => anyhow::bail!("{}{}", "Invalid Token URL: ".bold().red(), err),
+                        Err(err) => Err(Error::ParseError(err)),
                     }
                 }
             }
+
         )*
+
     };
 }
 
-strategy!(
+create_struct!(
     GithubStrategy,
     GoogleStrategy,
     MicrosoftStrategy,
     FacebookStrategy,
     DiscordStrategy,
-    FortyTwoStrategy
-);
-
-new_strategy!(
-    GithubStrategy,
-    GoogleStrategy,
-    MicrosoftStrategy,
-    FacebookStrategy,
-    DiscordStrategy,
-    FortyTwoStrategy
+    FortyTwoStrategy,
+    RedditStrategy
 );

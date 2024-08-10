@@ -1,6 +1,6 @@
 [package]
 name = "passport-strategies"
-version = "0.1.7"
+version = "0.1.10"
 authors = ["Bob Hawkins <Kinghawkins61@gmail.com>"]
 license = "MIT"
 description = "A thin wrapper on top of oauth2-rs that simplifies oauth2 authentication."
@@ -14,15 +14,16 @@ exclude = ["examples/*", ".vscode/*"]
 
 
 [dependencies]
-anyhow = "1.0.79"
-colored = "2.1.0"
 oauth2 = "4.4.2"
 reqwest = { version = "0.11.23", features = ["json"] }
 serde = { version = "1.0.194", features = ["derive"] }
 serde_json = "1.0.110"
+thiserror = "1.0.63"
+tracing = "0.1.40"
 
 
 [dev-dependecies]
 actix-web = "4.4.0"
+axum = "0.7.5"
+tracing-subscriber = { version = "0.3" }
 tokio = { version = "1.35.1", features = ["full"] }
-pretty_env_logger = "0.5.0"
