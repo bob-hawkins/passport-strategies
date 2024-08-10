@@ -6,7 +6,7 @@ This module lets you authenticate with the above mentioned providers in your app
 # Adding `passport-strategies`
 
 ```toml
-passport-strategies = { version = "0.1.8" }
+passport-strategies = { version = "0.1.10" }
 ```
 
 # Usage
@@ -15,7 +15,7 @@ Before using passport-strategies, you must register an application with the resp
 
 # Configure Strategy
 
-The `passport-strategy` authenticates users using the desired provider account and OAuth 2.0 tokens. The `app ID(or in some cases client id)`, `redirect url` and `client secret` obtained when creating an application are supplied as requirements when creating the strategy. You do not need to provide the authorization url and token url.Unlike [`passportjs`](https://www.passportjs.org/), the strategy does not require a verify callback, which receives the access token and optional refresh token, as well as profile which contains the authenticated user's provider profile. Instead, the profile, the access token and optional refresh token is returned to complete authentication.
+The `passport-strategies` authenticates users using the desired provider account and OAuth 2.0 tokens. The `app ID(or in some cases client id)`, `redirect url` and `client secret` obtained when creating an application are supplied as requirements when creating the strategy. You do not need to provide the authorization url and token url.Unlike [`passportjs`](https://www.passportjs.org/), the strategy does not require a verify callback, which receives the access token and optional refresh token, as well as profile which contains the authenticated user's provider profile. Instead, the profile, the access token and optional refresh token is returned to complete authentication.
 
 # Example (Microsoft)
 
@@ -38,6 +38,8 @@ The `passport-strategy` authenticates users using the desired provider account a
             ),
         )?;
 ```
+See [`here`](https://github.com/bob-hawkins/passport-strategies/tree/main/examples) for more examples.
+
 
 # What's new
 
