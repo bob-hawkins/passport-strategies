@@ -204,7 +204,7 @@ impl Passport {
             return Err(Error::MissingAuthorizationCode);
         }
 
-        let bind = self.strategies.clone();
+        let bind = &self.strategies;
         let strategy = bind.get(&choice).unwrap();
 
         match self
@@ -230,7 +230,8 @@ impl Passport {
                         .await
                         .map_err(|e| Error::Reqwest(e.to_string()))
                         .map(|v| v)?;
-
+                    
+                    self.sessions.remove(statecode.state.unwrap().secret()); // Clearing the nolonger needed verifier from the memmory
                     if response.status().is_success() {
                         response
                             .json::<serde_json::Value>()
@@ -266,7 +267,7 @@ impl Passport {
                         .await
                     {
                         Ok(token) => {
-                            self.sessions.remove(statecode.state.unwrap().secret());
+                            self.sessions.remove(statecode.state.unwrap().secret()); // Clearing the nolonger needed verifier from the memmory
 
                             match reqwest::Client::new()
                                 .get(strategy.request_uri())
@@ -310,7 +311,7 @@ impl Passport {
                             }
                         }
                         Err(err) => {
-                            self.sessions.remove(statecode.state.unwrap().secret());
+                            self.sessions.remove(statecode.state.unwrap().secret()); // Clearing the nolonger needed verifier from the memmory
                             Err(Error::Reqwest(err.to_string()))
                         }
                     }

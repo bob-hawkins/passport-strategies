@@ -6,7 +6,7 @@ This module lets you authenticate with the above mentioned providers in your app
 # Adding `passport-strategies`
 
 ```toml
-passport-strategies = { version = "0.1.10" }
+passport-strategies = { version = "0.1.11" }
 ```
 
 # Usage
@@ -46,3 +46,4 @@ See [`here`](https://github.com/bob-hawkins/passport-strategies/tree/main/exampl
 1. Support for the axum web framework.
 2. Reddit Strategy integration.
 3. Remove of the logic error in previous versions when multiple users try to authenticate at the same time.
+4. Clearing the nolonger needed verifiers from the memory
