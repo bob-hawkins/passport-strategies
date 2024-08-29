@@ -1,6 +1,6 @@
 [package]
 name = "passport-strategies"
-version = "0.1.10"
+version = "0.1.14"
 authors = ["Bob Hawkins <Kinghawkins61@gmail.com>"]
 license = "MIT"
 description = "A thin wrapper on top of oauth2-rs that simplifies oauth2 authentication."

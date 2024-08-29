@@ -57,8 +57,7 @@ pub async fn authenticate_reddit(
     passport: Data<RwLock<Passport>>,
 ) -> HttpResponse {
     let mut auth = passport.write().await;
-    let redirect = auth.redirects();
-    let (_response, url) = auth.authenticate(Choice::Reddit, statecode, redirect).await;
+    let (_response, url) = auth.authenticate(Choice::Reddit, statecode).await;
 
     // You will receive the redirect url which is determined based on authentication status `failed` or `success`
     // and an `Oauth2ServerResponse` which contains the access_token, refresh_token and user profile.
@@ -66,7 +65,7 @@ pub async fn authenticate_reddit(
     // data of the user.
 
     HttpResponse::SeeOther()
-        .append_header((http::header::LOCATION, url.to_string()))
+        .append_header((http::header::LOCATION, url))
         .finish()
 }
 
@@ -75,8 +74,7 @@ pub async fn authenticate_google(
     passport: Data<RwLock<Passport>>,
 ) -> HttpResponse {
     let mut auth = passport.write().await;
-    let redirect = auth.redirects();
-    let (_response, url) = auth.authenticate(Choice::Google, statecode, redirect).await;
+    let (_response, url) = auth.authenticate(Choice::Google, statecode).await;
 
     // You will receive the redirect url which is determined based on authentication status `failed` or `success`
     // and an `Oauth2ServerResponse` which contains the access_token, refresh_token and user profile.
@@ -84,7 +82,7 @@ pub async fn authenticate_google(
     // data of the user.
 
     HttpResponse::SeeOther()
-        .append_header((http::header::LOCATION, url.to_string()))
+        .append_header((http::header::LOCATION, url))
         .finish()
 }
 
@@ -93,9 +91,8 @@ pub async fn authenticate_discord(
     passport: Data<RwLock<Passport>>,
 ) -> HttpResponse {
     let mut auth = passport.write().await;
-    let redirect = auth.redirects();
     let (_response, url) = auth
-        .authenticate(Choice::Discord, statecode, redirect)
+        .authenticate(Choice::Discord, statecode)
         .await;
 
     // You will receive the redirect url which is determined based on authentication status `failed` or `success`
@@ -104,7 +101,7 @@ pub async fn authenticate_discord(
     // data of the user.
 
     HttpResponse::SeeOther()
-        .append_header((http::header::LOCATION, url.to_string()))
+        .append_header((http::header::LOCATION, url))
         .finish()
 }
 

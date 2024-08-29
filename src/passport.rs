@@ -105,7 +105,7 @@ impl Passport {
         self
     }
 
-    pub fn redirects(&self) -> Redirect {
+    fn redirects(&self) -> Redirect {
         Redirect {
             failure_redirect: self.failure_redirect.as_ref().unwrap().clone(),
             success_redirect: self.success_redirect.as_ref().unwrap().clone(),
@@ -170,8 +170,9 @@ impl Passport {
         &mut self,
         choice: Choice,
         statecode: StateCode,
-        redirects: Redirect,
     ) -> (Option<Oauth2ServerResponse>, String) {
+        let redirects = self.redirects();
+
         match self.profile(choice, statecode).await {
             Ok(value) => {
                 info!("oauth2 authentication completed with no errors");
@@ -237,16 +238,21 @@ impl Passport {
                             .json::<serde_json::Value>()
                             .await
                             .map_err(|error| Error::Reqwest(error.to_string()))
-                            .map(|profile| async move {
+                            .map(|mut profile| {
                                 let mut refresh_token = None;
 
                                 let access_token =
                                     PAccessToken(profile["access_token"].to_string());
+                                
+                                let _ = profile.as_object_mut().and_then(|map| map.remove("access_token"));
 
                                 if profile["refresh_token"].is_string() {
                                     refresh_token =
                                         Some(PRefreshToken(profile["refresh_token"].to_string()));
+                                    
                                 };
+                                
+                                let _ = profile.as_object_mut().and_then(|map| map.remove("refresh_token"));
 
                                 return Ok(Oauth2ServerResponse {
                                     access_token,
@@ -254,13 +260,11 @@ impl Passport {
                                     profile,
                                 });
                             })?
-                            .await
                     } else {
                         return Err(Error::Reqwest(response.text().await.unwrap()));
                     }
                 } else {
                     match clients
-                        .clone()
                         .exchange_code(AuthorizationCode::new(statecode.code.clone().unwrap()))
                         .set_pkce_verifier(json_pkce.0)
                         .request_async(async_http_client)
@@ -285,17 +289,21 @@ impl Passport {
                                             .json::<serde_json::Value>()
                                             .await
                                             .map_err(|error| Error::Reqwest(error.to_string()))
-                                            .map(|profile| {
+                                            .map(|mut profile| {
                                                 let mut refresh_token = None;
 
                                                 let access_token = PAccessToken(
                                                     token.access_token().secret().into(),
                                                 );
 
+                                                let _ = profile.as_object_mut().and_then(|map| map.remove("access_token"));
+
                                                 if let Some(re) = token.refresh_token() {
                                                     refresh_token =
                                                         Some(PRefreshToken(re.secret().to_owned()));
                                                 };
+
+                                                let _ = profile.as_object_mut().and_then(|map| map.remove("refresh_token"));
 
                                                 return Ok(Oauth2ServerResponse {
                                                     access_token,

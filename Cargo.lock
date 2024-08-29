@@ -665,7 +665,7 @@ dependencies = [
 
 [[package]]
 name = "passport-strategies"
-version = "0.1.10"
+version = "0.1.14"
 dependencies = [
  "oauth2",
  "reqwest",

@@ -66,8 +66,7 @@ pub async fn authenticate_reddit(
     Query(statecode): Query<passport_strategies::passport::StateCode>,
 ) -> impl IntoResponse {
     let mut auth = passport.write().await;
-    let redirect = auth.redirects();
-    let (_response, url) = auth.authenticate(Choice::Reddit, statecode, redirect).await;
+    let (_response, url) = auth.authenticate(Choice::Reddit, statecode).await;
 
     // You will receive the redirect url which is determined based on authentication status `failed` or `success`
     // and an `Oauth2ServerResponse` which contains the access_token, refresh_token and user profile.
@@ -82,8 +81,7 @@ pub async fn authenticate_google(
     Query(statecode): Query<passport_strategies::passport::StateCode>,
 ) -> impl IntoResponse {
     let mut auth = passport.write().await;
-    let redirect = auth.redirects();
-    let (_response, url) = auth.authenticate(Choice::Google, statecode, redirect).await;
+    let (_response, url) = auth.authenticate(Choice::Google, statecode).await;
 
     // You will receive the redirect url which is determined based on authentication status `failed` or `success`
     // and an `Oauth2ServerResponse` which contains the access_token, refresh_token and user profile.
@@ -98,8 +96,7 @@ pub async fn authenticate_github(
     Query(statecode): Query<passport_strategies::passport::StateCode>,
 ) -> impl IntoResponse {
     let mut auth = passport.write().await;
-    let redirect = auth.redirects();
-    let (_response, url) = auth.authenticate(Choice::Github, statecode, redirect).await;
+    let (_response, url) = auth.authenticate(Choice::Github, statecode).await;
 
     // You will receive the redirect url which is determined based on authentication status `failed` or `success`
     // and an `Oauth2ServerResponse` which contains the access_token, refresh_token and user profile.
@@ -114,9 +111,8 @@ pub async fn authenticate_msft(
     Query(statecode): Query<passport_strategies::passport::StateCode>,
 ) -> impl IntoResponse {
     let mut auth = passport.write().await;
-    let redirect = auth.redirects();
     let (_response, url) = auth
-        .authenticate(Choice::Microsoft, statecode, redirect)
+        .authenticate(Choice::Microsoft, statecode)
         .await;
 
     // You will receive the redirect url which is determined based on authentication status `failed` or `success`
@@ -132,9 +128,8 @@ pub async fn authenticate_discord(
     Query(statecode): Query<passport_strategies::passport::StateCode>,
 ) -> impl IntoResponse {
     let mut auth = passport.write().await;
-    let redirect = auth.redirects();
     let (_response, url) = auth
-        .authenticate(Choice::Discord, statecode, redirect)
+        .authenticate(Choice::Discord, statecode)
         .await;
 
     // You will receive the redirect url which is determined based on authentication status `failed` or `success`
